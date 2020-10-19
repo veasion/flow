@@ -9,11 +9,14 @@ import cn.veasion.flow.model.FlowRun;
 import cn.veasion.flow.model.FlowRunTrack;
 import com.alibaba.fastjson.JSONObject;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * TestFlowService
@@ -23,188 +26,102 @@ import java.util.function.Consumer;
  */
 public class TestFlowService implements IFlowService {
 
+    private static final String CONFIG_PATH = "/data.json";
+
+    private static final JSONObject config;
+    private static final Map<String, IFlowNode> registers;
+
+    static {
+        try {
+            byte[] bytes = Files.readAllBytes(Paths.get(TestFlowService.class.getResource(CONFIG_PATH).toURI()));
+            String text = new String(bytes, StandardCharsets.UTF_8);
+            config = JSONObject.parseObject(text);
+            registers = new HashMap<>();
+            for (IFlowNode flowNode : FlowNode.getFlowNodes()) {
+                registers.put(flowNode.getCode(), flowNode);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("初始化流程配置失败", e);
+        }
+    }
+
+    private Map<String, FlowRun> flowRunMap = new ConcurrentHashMap<>();
+    private Map<String, List<FlowRunTrack>> flowRunTrackMap = new ConcurrentHashMap<>();
+
     @Override
     public List<FlowDefaultConfig> queryFlowDefaultConfig() {
-        List<FlowDefaultConfig> list = new ArrayList<>();
-        FlowDefaultConfig config = new FlowDefaultConfig();
-        config.setFlow("SO");
-        config.setStartNode("START");
-        config.setErrorNode("SO_ERROR");
-        list.add(config);
-
+        List<FlowDefaultConfig> list = config.getJSONArray("defaultConfig").toJavaList(FlowDefaultConfig.class);
         return batchSetId(list);
     }
 
     @Override
     public List<FlowNextConfig> queryFlowNextConfig() {
-        List<FlowNextConfig> list = new ArrayList<>();
-        FlowNextConfig config = new FlowNextConfig();
-        config.setFlow("SO");
-        config.setNode("START");
-        config.setNextFlow("SO");
-        config.setNextNode("IS_PAY");
-        list.add(config);
-        config = new FlowNextConfig();
-        config.setFlow("SO");
-        config.setNode("IS_PAY");
-        config.setNextFlow("SO");
-        config.setNextNode("PAY_DONE");
-        config.setCond("next == 'yes'");
-        list.add(config);
-        config = new FlowNextConfig();
-        config.setFlow("SO");
-        config.setNode("IS_PAY");
-        config.setNextFlow("SO");
-        config.setNextNode("WAIT_PAY");
-        config.setCond("next == 'no'");
-        list.add(config);
-        config = new FlowNextConfig();
-        config.setFlow("SO");
-        config.setNode("PAY_DONE");
-        config.setNextFlow("SO");
-        config.setNextNode("SWITCH_1");
-        config.setCond("so.switch == 1");
-        list.add(config);
-        config = new FlowNextConfig();
-        config.setFlow("SO");
-        config.setNode("PAY_DONE");
-        config.setNextFlow("SO");
-        config.setNextNode("SWITCH_2");
-        config.setCond("so.switch == 2");
-        list.add(config);
-        config = new FlowNextConfig();
-        config.setFlow("SO");
-        config.setNode("PAY_DONE");
-        config.setNextFlow("SO");
-        config.setNextNode("SWITCH_3");
-        config.setCond("so.switch == 3");
-        list.add(config);
-        config = new FlowNextConfig();
-        config.setFlow("SO");
-        config.setNode("PAY_DONE");
-        config.setNextFlow("SO");
-        config.setNextNode("SWITCH_DEFAULT");
-        list.add(config);
-
+        List<FlowNextConfig> list = config.getJSONArray("nextConfig").toJavaList(FlowNextConfig.class);
         return batchSetId(list);
     }
 
     @Override
     public List<FlowNodeConfig> queryFlowNodeConfig() {
-        List<FlowNodeConfig> list = new ArrayList<>();
-        FlowNodeConfig config = new FlowNodeConfig();
-        config.setCode("START");
-        config.setName("开始");
-        config.setIsVirtual(1);
-        list.add(config);
-        config = new FlowNodeConfig();
-        config.setCode("IS_PAY");
-        config.setName("是否支付");
-        config.setIsVirtual(0);
-        list.add(config);
-        config = new FlowNodeConfig();
-        config.setCode("WAIT_PAY");
-        config.setName("等待支付");
-        config.setIsVirtual(0);
-        list.add(config);
-        config = new FlowNodeConfig();
-        config.setCode("PAY_DONE");
-        config.setName("支付完成");
-        config.setIsVirtual(0);
-        list.add(config);
-        config = new FlowNodeConfig();
-        config.setCode("SWITCH_1");
-        config.setName("switch1");
-        config.setIsVirtual(1);
-        list.add(config);
-        config = new FlowNodeConfig();
-        config.setCode("SWITCH_2");
-        config.setName("switch2");
-        config.setIsVirtual(1);
-        list.add(config);
-        config = new FlowNodeConfig();
-        config.setCode("SWITCH_3");
-        config.setName("switch3");
-        config.setIsVirtual(1);
-        list.add(config);
-        config = new FlowNodeConfig();
-        config.setCode("SWITCH_DEFAULT");
-        config.setName("switch_default");
-        config.setIsVirtual(1);
-        list.add(config);
-        config = new FlowNodeConfig();
-        config.setCode("SO_ERROR");
-        config.setName("错误节点");
-        config.setIsVirtual(0);
-        list.add(config);
-
+        List<FlowNodeConfig> list = config.getJSONArray("nodeConfig").toJavaList(FlowNodeConfig.class);
         return batchSetId(list);
     }
 
     @Override
     public FlowRun queryFlowRun(String flow, String flowCode) {
-        if ("last".equals(flowCode)) {
-            FlowRun flowRun = new FlowRun();
-            flowRun.setFlow("SO");
-            flowRun.setNode("IS_PAY");
-            flowRun.setFlowCode(flowCode);
-            flowRun.setStatus(3);
-            flowRun.setRunData("{\"flowCode\":\"" + flowCode + "\",\"data\":{\"next\":\"yes\",\"so\":{}}}");
-            return flowRun;
-        }
-        return null;
+        return flowRunMap.get(key(flow, flowCode));
     }
 
     @Override
     public List<FlowRunTrack> queryFlowRunTrack(String flow, String flowCode) {
-        return null;
+        return flowRunTrackMap.get(key(flow, flowCode));
     }
 
     @Override
     public void saveFlowRun(FlowRun flowRun) {
-        System.out.println("saveFlowRun:");
-        System.out.println(JSONObject.toJSONString(flowRun));
+        String key = key(flowRun.getFlow(), flowRun.getFlowCode());
+        flowRunMap.put(key, flowRun);
     }
 
     @Override
     public void updateFlowRun(FlowRun flowRun) {
-        System.out.println("updateFlowRun:");
-        System.out.println(JSONObject.toJSONString(flowRun));
+        String key = key(flowRun.getFlow(), flowRun.getFlowCode());
+        FlowRun flowRunOld = flowRunMap.get(key);
+        if (flowRun.getStatus() != null) {
+            flowRunOld.setStatus(flowRun.getStatus());
+        }
+        if (flowRun.getNode() != null) {
+            flowRunOld.setNode(flowRun.getNode());
+        }
+        if (flowRun.getRunData() != null) {
+            flowRunOld.setRunData(flowRun.getRunData());
+        }
+        if (flowRun.getFlow() != null) {
+            flowRunOld.setFlow(flowRun.getFlow());
+        }
+        if (flowRun.getFlowCode() != null) {
+            flowRunOld.setFlowCode(flowRun.getFlowCode());
+        }
     }
 
     @Override
     public void saveFlowRunTrack(FlowRunTrack flowRunTrack) {
-        System.out.println("saveFlowRunTrack:");
-        System.out.println(JSONObject.toJSONString(flowRunTrack));
+        String key = key(flowRunTrack.getFlow(), flowRunTrack.getFlowCode());
+        flowRunTrackMap.compute(key, (k, v) -> {
+            if (v == null) {
+                v = new ArrayList<>();
+            }
+            v.add(flowRunTrack);
+            return v;
+        });
     }
 
     @Override
     public IFlowNode getFlowNode(String code) {
-        IFlowNode flowNode = null;
-        if ("IS_PAY".equals(code)) {
-            flowNode = buildFlowNode(code, (context) -> {
-                context.set("so", new HashMap<String, Object>());
-                context.nextYes();
-            });
-        } else if ("PAY_DONE".equals(code)) {
-            flowNode = buildFlowNode(code, (context) -> {
-                Map<String, Object> map = context.getData("so");
-                map.put("switch", 1);
-                context.getTrackMap().put("switch", map.get("switch"));
-            });
-        } else if ("WAIT_PAY".equals(code)) {
-            flowNode = buildFlowNode(code, (context) -> {
-                System.out.println("等待支付...");
-            });
-        } else if ("SO_ERROR".equals(code)) {
-            flowNode = buildFlowNode(code, (context) -> {
-                System.err.println("运行错误节点");
-            });
-        }
-        if (flowNode == null) {
+        final IFlowNode node = registers.get(code);
+        if (node == null) {
             return null;
         }
-        final IFlowNode node = flowNode;
+        // 代理流程节点
         return new IFlowNode() {
             @Override
             public void onFlow(FlowContext context) throws Exception {
@@ -219,18 +136,8 @@ public class TestFlowService implements IFlowService {
         };
     }
 
-    private IFlowNode buildFlowNode(String code, Consumer<FlowContext> consumer) {
-        return new IFlowNode() {
-            @Override
-            public void onFlow(FlowContext context) throws Exception {
-                consumer.accept(context);
-            }
-
-            @Override
-            public String getCode() {
-                return code;
-            }
-        };
+    private String key(String var1, String var2) {
+        return var1 + ";" + var2;
     }
 
     @SuppressWarnings("unchecked")

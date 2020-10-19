@@ -17,6 +17,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class FlowContext {
 
+    public static final String NEXT_KEY = "next";
+
     private String flowCode;
     private FlowRun flowRun;
     private FlowContext parent;
@@ -29,15 +31,15 @@ public class FlowContext {
     }
 
     public void next() {
-        this.set("next", "default");
+        data.put(NEXT_KEY, "default");
     }
 
     public void nextYes() {
-        this.set("next", "yes");
+        this.set(NEXT_KEY, "yes");
     }
 
     public void nextNo() {
-        this.set("next", "no");
+        this.set(NEXT_KEY, "no");
     }
 
     public Map<String, Object> getData() {
@@ -56,6 +58,7 @@ public class FlowContext {
 
     public void set(String key, Object value) {
         data.put(key, value);
+        trackMap.put(key, value);
     }
 
     public String getFlowCode() {

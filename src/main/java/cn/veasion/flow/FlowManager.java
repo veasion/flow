@@ -125,17 +125,23 @@ public class FlowManager {
                     runFlowNextNode(context, errorNode, null);
                 } catch (Exception ee) {
                     LOGGER.error("运行错误流程节点异常！flow: {}, flowCode: {}", flowIn.getFlow(), flowIn.getFlowCode(), ee);
+                    updateRunStatus(flowIn.getFlow(), flowIn.getFlowCode(), FlowRunStatusEnum.SUSPEND);
+                    return;
                 }
             }
             LOGGER.error("运行流程节点异常！flow: {}, flowCode: {}", flowIn.getFlow(), flowIn.getFlowCode(), e);
-            flowRun = flowService.queryFlowRun(flowIn.getFlow(), flowIn.getFlowCode());
-            if (flowRun != null) {
-                flowRun.setStatus(FlowRunStatusEnum.ERROR.getStatus());
-                flowRun.setUpdateTime(new Date());
-                flowService.updateFlowRun(flowRun);
-            }
+            updateRunStatus(flowIn.getFlow(), flowIn.getFlowCode(), FlowRunStatusEnum.ERROR);
         } finally {
             scriptExecutor.afterFlow(context);
+        }
+    }
+
+    private void updateRunStatus(String flow, String flowCode, FlowRunStatusEnum statusEnum) {
+        FlowRun flowRun = flowService.queryFlowRun(flow, flowCode);
+        if (flowRun != null) {
+            flowRun.setStatus(statusEnum.getStatus());
+            flowRun.setUpdateTime(new Date());
+            flowService.updateFlowRun(flowRun);
         }
     }
 
@@ -154,24 +160,13 @@ public class FlowManager {
         FlowContext.copy(lastContext, context);
         List<FlowNextNode> nodes = flowNodeCore.getNodes(flowRun.getFlow(), flowRun.getNode());
         if (nodes == null || nodes.isEmpty()) {
-            // 没有下一个节点，流程结束
-            flowRun.setStatus(FlowRunStatusEnum.FINISH.getStatus());
-            flowService.updateFlowRun(flowRun);
-            return null;
-        }
-        // 初始化脚本
-        scriptExecutor.beforeFlow(context);
-        // 获取下一个流程节点
-        FlowNextNode nextNode = getNextNode(context, nodes);
-        if (nextNode == null) {
-            // 未匹配下一个节点，暂停
+            // 节点消失，暂停
+            LOGGER.warn("flow: {}, node: {} 流程节点未找到", flowRun.getFlow(), flowRun.getNode());
             flowRun.setStatus(FlowRunStatusEnum.SUSPEND.getStatus());
-            LOGGER.warn("flow: {}, node: {} 未匹配下一个节点", flowRun.getFlow(), flowRun.getNode());
             flowService.updateFlowRun(flowRun);
             return null;
-        } else {
-            return nextNode;
         }
+        return nodes.get(0);
     }
 
     private void runFlowNextNode(FlowContext context, FlowNextNode startNode, FlowRun flowRun) throws Exception {
@@ -297,4 +292,9 @@ public class FlowManager {
     public void setScriptExecutor(IScriptExecutor scriptExecutor) {
         this.scriptExecutor = Objects.requireNonNull(scriptExecutor);
     }
+
+    public IFlowService getFlowService() {
+        return flowService;
+    }
+
 }
