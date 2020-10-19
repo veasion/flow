@@ -1,6 +1,7 @@
 package cn.veasion.flow;
 
 import cn.veasion.flow.core.IFlowService;
+import cn.veasion.flow.model.BaseBean;
 import cn.veasion.flow.model.FlowDefaultConfig;
 import cn.veasion.flow.model.FlowNextConfig;
 import cn.veasion.flow.model.FlowNodeConfig;
@@ -13,7 +14,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * TestFlowService
@@ -31,7 +31,8 @@ public class TestFlowService implements IFlowService {
         config.setStartNode("START");
         config.setErrorNode("SO_ERROR");
         list.add(config);
-        return list;
+
+        return batchSetId(list);
     }
 
     @Override
@@ -84,7 +85,8 @@ public class TestFlowService implements IFlowService {
         config.setNextFlow("SO");
         config.setNextNode("SWITCH_DEFAULT");
         list.add(config);
-        return list;
+
+        return batchSetId(list);
     }
 
     @Override
@@ -113,40 +115,43 @@ public class TestFlowService implements IFlowService {
         config = new FlowNodeConfig();
         config.setCode("SWITCH_1");
         config.setName("switch1");
-        config.setIsVirtual(0);
+        config.setIsVirtual(1);
         list.add(config);
         config = new FlowNodeConfig();
         config.setCode("SWITCH_2");
         config.setName("switch2");
-        config.setIsVirtual(0);
+        config.setIsVirtual(1);
         list.add(config);
         config = new FlowNodeConfig();
         config.setCode("SWITCH_3");
         config.setName("switch3");
-        config.setIsVirtual(0);
+        config.setIsVirtual(1);
         list.add(config);
         config = new FlowNodeConfig();
         config.setCode("SWITCH_DEFAULT");
         config.setName("switch_default");
-        config.setIsVirtual(0);
+        config.setIsVirtual(1);
         list.add(config);
         config = new FlowNodeConfig();
         config.setCode("SO_ERROR");
         config.setName("错误节点");
         config.setIsVirtual(0);
         list.add(config);
-        return list;
+
+        return batchSetId(list);
     }
 
     @Override
     public FlowRun queryFlowRun(String flow, String flowCode) {
-//        FlowRun flowRun = new FlowRun();
-//        flowRun.setFlow("SO");
-//        flowRun.setNode("IS_PAY");
-//        flowRun.setFlowCode(flowCode);
-//        flowRun.setStatus(3);
-//        flowRun.setRunData(null);
-//        return flowRun;
+        if ("last".equals(flowCode)) {
+            FlowRun flowRun = new FlowRun();
+            flowRun.setFlow("SO");
+            flowRun.setNode("IS_PAY");
+            flowRun.setFlowCode(flowCode);
+            flowRun.setStatus(3);
+            flowRun.setRunData("{\"flowCode\":\"" + flowCode + "\",\"data\":{\"next\":\"yes\",\"so\":{}}}");
+            return flowRun;
+        }
         return null;
     }
 
@@ -178,11 +183,12 @@ public class TestFlowService implements IFlowService {
         IFlowNode flowNode = null;
         if ("IS_PAY".equals(code)) {
             flowNode = buildFlowNode(code, (context) -> {
+                context.set("so", new HashMap<String, Object>());
                 context.nextYes();
             });
         } else if ("PAY_DONE".equals(code)) {
             flowNode = buildFlowNode(code, (context) -> {
-                Map map = context.getData("so");
+                Map<String, Object> map = context.getData("so");
                 map.put("switch", 1);
                 context.getTrackMap().put("switch", map.get("switch"));
             });
@@ -195,7 +201,22 @@ public class TestFlowService implements IFlowService {
                 System.err.println("运行错误节点");
             });
         }
-        return flowNode;
+        if (flowNode == null) {
+            return null;
+        }
+        final IFlowNode node = flowNode;
+        return new IFlowNode() {
+            @Override
+            public void onFlow(FlowContext context) throws Exception {
+                System.out.println("==> " + getCode());
+                node.onFlow(context);
+            }
+
+            @Override
+            public String getCode() {
+                return node.getCode();
+            }
+        };
     }
 
     private IFlowNode buildFlowNode(String code, Consumer<FlowContext> consumer) {
@@ -210,5 +231,13 @@ public class TestFlowService implements IFlowService {
                 return code;
             }
         };
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> List<T> batchSetId(List<? extends BaseBean> list) {
+        for (int i = 0; i < list.size(); i++) {
+            list.get(i).setId((long) i);
+        }
+        return (List<T>) list;
     }
 }

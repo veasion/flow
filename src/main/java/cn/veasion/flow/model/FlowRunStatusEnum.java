@@ -9,6 +9,11 @@ package cn.veasion.flow.model;
 public enum FlowRunStatusEnum {
 
     /**
+     * 初始化
+     */
+    INIT(0),
+
+    /**
      * 正常
      */
     NORMAL(1),
@@ -32,6 +37,14 @@ public enum FlowRunStatusEnum {
 
     FlowRunStatusEnum(Integer status) {
         this.status = status;
+    }
+
+    public static boolean canRunFlow(Integer status) {
+        FlowRunStatusEnum statusEnum = of(status);
+        if (statusEnum == null) {
+            return false;
+        }
+        return statusEnum == INIT || statusEnum == NORMAL || statusEnum == SUSPEND;
     }
 
     public static FlowRunStatusEnum of(Integer status) {

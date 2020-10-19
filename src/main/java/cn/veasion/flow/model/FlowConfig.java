@@ -10,6 +10,8 @@ import java.io.Serializable;
  */
 public class FlowConfig implements Serializable {
 
+	private static final long serialVersionUID = 1L;
+
     private String flow;
     private FlowNextNode startNode;
     private FlowNextNode errorNode;

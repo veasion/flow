@@ -13,7 +13,8 @@ public class FlowTest {
     public static void main(String[] args) {
         IFlowService flowService = new TestFlowService();
         FlowManager flowManager = new FlowManager(flowService, true);
-        flowManager.startFlowSync(new FlowIn("SO", "code1"));
+        flowManager.startFlowSync(new FlowIn("SO", "test"));
+        // flowManager.startFlowSync(new FlowIn("SO", "last"));
     }
 
 }

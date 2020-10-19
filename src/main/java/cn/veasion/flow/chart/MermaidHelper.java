@@ -8,12 +8,10 @@ import cn.veasion.flow.model.FlowNodeConfig;
 import cn.veasion.flow.model.FlowRun;
 import cn.veasion.flow.model.FlowRunTrack;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -30,84 +28,6 @@ import java.util.stream.Collectors;
  */
 public class MermaidHelper {
 
-    public static void main(String[] args) {
-        List<FlowNextConfig> nextConfigs = new LinkedList<>();
-        FlowNextConfig a = new FlowNextConfig();
-        a.setFlow("test");
-        a.setNode("a");
-        a.setNextNode("b");
-        FlowNextConfig b1 = new FlowNextConfig();
-        b1.setFlow("test");
-        b1.setNode("b");
-        b1.setCond("yes");
-        b1.setNextNode("c");
-        FlowNextConfig b2 = new FlowNextConfig();
-        b2.setFlow("test");
-        b2.setNode("b");
-        b2.setCond("no");
-        b2.setNextNode("h");
-        FlowNextConfig c1 = new FlowNextConfig();
-        c1.setFlow("test");
-        c1.setNode("c");
-        c1.setCond("yes");
-        c1.setNextNode("d");
-        FlowNextConfig c2 = new FlowNextConfig();
-        c2.setFlow("test");
-        c2.setNode("c");
-        c2.setCond("no");
-        c2.setNextNode("f");
-        FlowNextConfig d = new FlowNextConfig();
-        d.setFlow("test");
-        d.setNode("d");
-        d.setNextNode("e");
-        FlowNextConfig e = new FlowNextConfig();
-        e.setFlow("test");
-        e.setNode("e");
-        e.setNextNode("g");
-        FlowNextConfig f = new FlowNextConfig();
-        f.setFlow("test");
-        f.setNode("f");
-        f.setNextNode("g");
-        FlowNextConfig g = new FlowNextConfig();
-        g.setFlow("test");
-        g.setNode("g");
-        g.setNextNode("h");
-        FlowNextConfig h1 = new FlowNextConfig();
-        h1.setFlow("test");
-        h1.setNode("h");
-        h1.setCond("yes");
-        h1.setNextNode("i");
-        FlowNextConfig h2 = new FlowNextConfig();
-        h2.setFlow("test");
-        h2.setNode("h");
-        h2.setCond("no");
-        h2.setNextNode("j");
-        FlowNextConfig i = new FlowNextConfig();
-        i.setFlow("test");
-        i.setNode("i");
-        i.setNextNode("k");
-        FlowNextConfig j = new FlowNextConfig();
-        j.setFlow("test");
-        j.setNode("j");
-        j.setNextNode("k");
-        nextConfigs.add(a);
-        nextConfigs.add(b1);
-        nextConfigs.add(b2);
-        nextConfigs.add(c1);
-        nextConfigs.add(c2);
-        nextConfigs.add(d);
-        nextConfigs.add(e);
-        nextConfigs.add(f);
-        nextConfigs.add(g);
-        nextConfigs.add(h1);
-        nextConfigs.add(h2);
-        nextConfigs.add(i);
-        nextConfigs.add(j);
-        StringBuilder styles = new StringBuilder();
-        System.out.println(doGetFlowChartCode(nextConfigs, Collections.emptyMap(), Collections.emptyMap(), "test", "a", "g", Arrays.asList("a", "b", "c", "d", "e", "g"), styles, new AtomicInteger(0)));
-        System.out.println(styles.toString());
-    }
-
     public static String getChartSQL(String flow) {
         StringBuilder sb = new StringBuilder();
         sb.append("select concat(if(c.cond is null, concat(c.node, '-->', c.next_node), concat(c.node, '-->|\"', c.cond, '\"|', c.next_node)), if(cn.cond is null, '', concat('(', c.next_node, ')'))) ");
@@ -122,32 +42,36 @@ public class MermaidHelper {
 
     public static String getChartHtml(IFlowService flowService, String flow, String flowCode) {
         StringBuilder html = new StringBuilder();
-        html.append("<!DOCTYPE html>");
-        html.append("<html>");
-        html.append("<head>");
-        html.append("<title>Flow Chart: ").append(flow).append(flowCode != null ? "[" + flowCode + "]" : "").append("</title>");
-        html.append("<meta charset=\"UTF-8\">");
-        html.append("<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">");
-        html.append("</head>");
-        html.append("<body>");
-        html.append("<div class=\"mermaid\">\n");
+        html.append("<!DOCTYPE html>\n");
+        html.append("<html>\n");
+        html.append("<head>\n");
+        html.append("<title>Flow Chart: ").append(flow).append(flowCode != null ? "[" + flowCode + "]" : "").append("</title>\n");
+        html.append("<meta charset=\"UTF-8\">\n");
+        html.append("</head>\n");
+        html.append("<body>\n");
+        html.append("<div class=\"mermaid\" style=\"text-align: center;\">\n");
         List<FlowDefaultConfig> defaultConfigs = flowService.queryFlowDefaultConfig();
         Optional<FlowDefaultConfig> find = defaultConfigs.stream().filter((cfg) -> cfg.getFlow().equalsIgnoreCase(flow)).findAny();
         if (!find.isPresent()) {
             throw new FlowException("no such flow: " + flow);
         }
-        List<FlowNodeConfig> nodeConfigs = flowService.queryFlowNodeConfig();
-        List<FlowNextConfig> nextConfigs = flowService.queryFlowNextConfig();
-        Map<String, String> nodeNameMap = nodeConfigs.stream().collect(Collectors.toMap(FlowNodeConfig::getCode, FlowNodeConfig::getName));
-        html.append(MermaidHelper.getFlowChartCode(defaultConfigs, nextConfigs, nodeNameMap, flow, flowCode, flowService));
+        html.append(getFlowChartCode(flowService, flow, flowCode));
         html.append("\n</div>");
-        html.append("\n<script type=\"text/javascript\" src=\"https://cdn.bootcdn.net/ajax/libs/mermaid/8.8.2/mermaid.min.js\"></script>");
+        html.append("\n<script type=\"text/javascript\" src=\"./mermaid.min.js\"></script>");
         html.append("\n<script>");
-        html.append("mermaid.initialize({\n      startOnLoad: true, \n      theme: 'default', // default || forest || dark || neutral\n      logLevel:'fatal',\n      securityLevel:'strict',\n      arrowMarkerAbsolute: false,\n      fontFamily: 'arial',\n      flowchart:{\n        useMaxWidth: false,\n        htmlLabels: true,\n        curve: 'linear', // basis || linear || cardinal\n        nodeSpacing: 40\n      }\n    });");
+        html.append("\n      mermaid.initialize({\n      startOnLoad: true, \n      theme: 'default', // default || forest || dark || neutral\n      logLevel:'fatal',\n      securityLevel:'strict',\n      arrowMarkerAbsolute: false,\n      fontFamily: 'arial',\n      flowchart:{\n        useMaxWidth: false,\n        htmlLabels: true,\n        curve: 'linear', // basis || linear || cardinal\n        nodeSpacing: 40\n      }\n    });");
         html.append("\n</script>");
-        html.append("</body>");
-        html.append("</html>");
+        html.append("\n</body>");
+        html.append("\n</html>");
         return html.toString();
+    }
+
+    public static String getFlowChartCode(IFlowService flowService, String flow, String flowCode) {
+        List<FlowDefaultConfig> defaultConfigs = flowService.queryFlowDefaultConfig();
+        List<FlowNextConfig> nextConfigs = flowService.queryFlowNextConfig();
+        List<FlowNodeConfig> nodeConfigs = flowService.queryFlowNodeConfig();
+        Map<String, String> nodeNameMap = nodeConfigs.stream().collect(Collectors.toMap(FlowNodeConfig::getCode, FlowNodeConfig::getName, (a, b) -> a));
+        return getFlowChartCode(defaultConfigs, nextConfigs, nodeNameMap, flow, flowCode, flowService);
     }
 
     public static String getFlowChartCode(List<FlowDefaultConfig> defaultConfigs, List<FlowNextConfig> nextConfigs, Map<String, String> nodeNameMap, String flow, String flowCode, IFlowService flowService) {

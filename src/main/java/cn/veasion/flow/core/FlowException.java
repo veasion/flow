@@ -8,6 +8,8 @@ package cn.veasion.flow.core;
  */
 public class FlowException extends RuntimeException {
 
+	private static final long serialVersionUID = 1L;
+
     public FlowException(String message) {
         super(message);
     }

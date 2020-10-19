@@ -1,10 +1,12 @@
 package cn.veasion.flow;
 
+import cn.veasion.flow.model.FlowRun;
 import com.alibaba.fastjson.JSONObject;
 
 import javax.script.ScriptContext;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -16,6 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class FlowContext {
 
     private String flowCode;
+    private FlowRun flowRun;
     private FlowContext parent;
     private ScriptContext scriptContext;
     private Map<String, Object> trackMap = new HashMap<>();
@@ -57,6 +60,14 @@ public class FlowContext {
 
     public String getFlowCode() {
         return flowCode;
+    }
+
+    public FlowRun getFlowRun() {
+        return flowRun;
+    }
+
+    public void setFlowRun(FlowRun flowRun) {
+        this.flowRun = flowRun;
     }
 
     public void setParent(FlowContext parent) {
@@ -101,6 +112,16 @@ public class FlowContext {
             context.parent = convertFlowContext(json.getString("parent"));
         }
         return context;
+    }
+
+    public static void copy(FlowContext source, FlowContext target) {
+        Objects.requireNonNull(source);
+        Objects.requireNonNull(target);
+        target.parent = source.parent;
+        target.flowCode = source.flowCode;
+        for (String key : source.data.keySet()) {
+            target.data.put(key, source.data.get(key));
+        }
     }
 
 }

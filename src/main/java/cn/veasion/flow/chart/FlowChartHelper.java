@@ -1,6 +1,10 @@
 package cn.veasion.flow.chart;
 
+import cn.veasion.flow.core.IFlowService;
+import cn.veasion.flow.model.FlowDefaultConfig;
 import cn.veasion.flow.model.FlowNextConfig;
+import cn.veasion.flow.model.FlowNodeConfig;
+import cn.veasion.flow.model.FlowRunTrack;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,80 +26,26 @@ import java.util.stream.Collectors;
  */
 public class FlowChartHelper {
 
-    public static void main(String[] args) {
-        List<FlowNextConfig> nextConfigs = new ArrayList<>();
-        FlowNextConfig a = new FlowNextConfig();
-        a.setFlow("test");
-        a.setNode("a");
-        a.setNextNode("b");
-        FlowNextConfig b1 = new FlowNextConfig();
-        b1.setFlow("test");
-        b1.setNode("b");
-        b1.setCond("yes");
-        b1.setNextNode("c");
-        FlowNextConfig b2 = new FlowNextConfig();
-        b2.setFlow("test");
-        b2.setNode("b");
-        b2.setCond("no");
-        b2.setNextNode("h");
-        FlowNextConfig c1 = new FlowNextConfig();
-        c1.setFlow("test");
-        c1.setNode("c");
-        c1.setCond("yes");
-        c1.setNextNode("d");
-        FlowNextConfig c2 = new FlowNextConfig();
-        c2.setFlow("test");
-        c2.setNode("c");
-        c2.setCond("no");
-        c2.setNextNode("f");
-        FlowNextConfig d = new FlowNextConfig();
-        d.setFlow("test");
-        d.setNode("d");
-        d.setNextNode("e");
-        FlowNextConfig e = new FlowNextConfig();
-        e.setFlow("test");
-        e.setNode("e");
-        e.setNextNode("g");
-        FlowNextConfig f = new FlowNextConfig();
-        f.setFlow("test");
-        f.setNode("f");
-        f.setNextNode("g");
-        FlowNextConfig g = new FlowNextConfig();
-        g.setFlow("test");
-        g.setNode("g");
-        g.setNextNode("h");
-        FlowNextConfig h1 = new FlowNextConfig();
-        h1.setFlow("test");
-        h1.setNode("h");
-        h1.setCond("yes");
-        h1.setNextNode("i");
-        FlowNextConfig h2 = new FlowNextConfig();
-        h2.setFlow("test");
-        h2.setNode("h");
-        h2.setCond("no");
-        h2.setNextNode("j");
-        FlowNextConfig i = new FlowNextConfig();
-        i.setFlow("test");
-        i.setNode("i");
-        i.setNextNode("k");
-        FlowNextConfig j = new FlowNextConfig();
-        j.setFlow("test");
-        j.setNode("j");
-        j.setNextNode("k");
-        nextConfigs.add(a);
-        nextConfigs.add(b1);
-        nextConfigs.add(b2);
-        nextConfigs.add(c1);
-        nextConfigs.add(c2);
-        nextConfigs.add(d);
-        nextConfigs.add(e);
-        nextConfigs.add(f);
-        nextConfigs.add(g);
-        nextConfigs.add(h1);
-        nextConfigs.add(h2);
-        nextConfigs.add(i);
-        nextConfigs.add(j);
-        System.out.println(getFlowChartCode(nextConfigs, null, "test", "a", "f", Arrays.asList("a", "b", "c", "d", "e")));
+    public static String getFlowChartCode(IFlowService flowService, String flow, String node) {
+        String startNode = null;
+        List<FlowDefaultConfig> flowDefaultConfigs = flowService.queryFlowDefaultConfig();
+        for (FlowDefaultConfig flowDefaultConfig : flowDefaultConfigs) {
+            if (flow.equals(flowDefaultConfig.getFlow())) {
+                startNode = flowDefaultConfig.getStartNode();
+                break;
+            }
+        }
+        List<FlowNextConfig> nextConfigs = flowService.queryFlowNextConfig();
+        List<FlowNodeConfig> nodeConfigs = flowService.queryFlowNodeConfig();
+        List<String> pastNodes = new ArrayList<>();
+        List<FlowRunTrack> flowRunTracks = flowService.queryFlowRunTrack(flow, node);
+        if (flowRunTracks != null) {
+            for (FlowRunTrack flowRunTrack : flowRunTracks) {
+                pastNodes.add(flowRunTrack.getNode());
+            }
+        }
+        Map<String, String> nodeNameMap = nodeConfigs.stream().collect(Collectors.toMap(FlowNodeConfig::getCode, FlowNodeConfig::getName, (a, b) -> a));
+        return getFlowChartCode(nextConfigs, nodeNameMap, flow, startNode, node, pastNodes);
     }
 
     public static String getFlowChartCode(List<FlowNextConfig> nextConfigs, Map<String, String> nodeNameMap, String flow, String startNode, String currentNode, List<String> pastNodes) {
@@ -112,7 +62,6 @@ public class FlowChartHelper {
                         conds.add(cfg.getCond());
                         condFlowMap.put(cfg.getNode(), conds);
                     }
-
                     conds.add(cfg.getNextNode());
                 } else {
                     flatFlowMap.put(cfg.getNode(), cfg.getNextNode());
@@ -177,14 +126,14 @@ public class FlowChartHelper {
                 nodeCodeBuff.append(nextNode);
                 lastNode = nextNode;
             }
-        } while(nextNode != null);
+        } while (nextNode != null);
 
     }
 
     private static void onCond(String condNode, StringBuilder nodeCodeBuff, Set<String> unpeatNodeCode, Map<String, String> flatFlowMap, Map<String, List<String>> condFlowMap) {
         List<String> conds = condFlowMap.get(condNode);
         boolean yes = true;
-        for(int i = 1; i < conds.size(); ++i) {
+        for (int i = 1; i < conds.size(); ++i) {
             String nextNode = conds.get(i);
             String cond = yes ? "yes, bottom" : "no, right";
             yes = false;
@@ -284,10 +233,8 @@ public class FlowChartHelper {
                                 directions = new LinkedList<>();
                                 directionMap.put(baseLastTag, directions);
                             }
-
                             directions.add(new Direction(tag, align));
                         }
-
                         if (align != null) {
                             buff.append("(").append(align).append(")");
                         }
@@ -296,11 +243,9 @@ public class FlowChartHelper {
                         directions.add(new Direction("", isYesStep(lastTag) ? "top" : "left"));
                     }
                 }
-
                 if (idx++ > 0) {
                     buff.append("->");
                 }
-
                 buff.append(tag);
                 lastTag = tag;
             }
@@ -385,7 +330,7 @@ public class FlowChartHelper {
                 return aligns.get(0);
             }
             align = alignIt.next();
-        } while(presentAligns.contains(align));
+        } while (presentAligns.contains(align));
         return align;
     }
 

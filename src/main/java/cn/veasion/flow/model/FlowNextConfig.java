@@ -8,6 +8,8 @@ package cn.veasion.flow.model;
  */
 public class FlowNextConfig extends BaseBean {
 
+	private static final long serialVersionUID = 1L;
+
     private String flow; // 流程
     private String node; // 节点
     private String nextFlow; // 下一个流程

@@ -8,6 +8,8 @@ package cn.veasion.flow.model;
  */
 public class FlowDefaultConfig extends BaseBean {
 
+	private static final long serialVersionUID = 1L;
+
     private String flow; // 流程
     private String startNode; // 开始节点
     private String errorNode; // 错误节点

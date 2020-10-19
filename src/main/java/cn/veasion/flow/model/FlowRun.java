@@ -8,6 +8,8 @@ package cn.veasion.flow.model;
  */
 public class FlowRun extends BaseBean {
 
+	private static final long serialVersionUID = 1L;
+
     private String flow; // 流程
     private String flowCode; // 流程编码
     private String node; // 当前节点

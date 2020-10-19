@@ -8,7 +8,9 @@ package cn.veasion.flow.core;
  */
 public class FlowConfigException extends FlowException {
 
-    public FlowConfigException(String message) {
+	private static final long serialVersionUID = 1L;
+
+	public FlowConfigException(String message) {
         super(message);
     }
 

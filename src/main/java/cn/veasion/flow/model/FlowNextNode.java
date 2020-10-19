@@ -1,9 +1,9 @@
 package cn.veasion.flow.model;
 
+import cn.veasion.flow.FlowUtils;
 import cn.veasion.flow.IFlowNode;
 
 import java.io.Serializable;
-import java.util.List;
 
 /**
  * FlowNextNode
@@ -13,18 +13,14 @@ import java.util.List;
  */
 public class FlowNextNode implements Serializable {
 
-    private FlowNextNode prev;
+	private static final long serialVersionUID = 1L;
+
     private FlowNodeConfig node;
     private IFlowNode flowNode;
     private FlowNextConfig flowNextConfig;
-    private List<FlowNextNode> nextNodes;
 
-    public FlowNextNode getPrev() {
-        return prev;
-    }
-
-    public void setPrev(FlowNextNode prev) {
-        this.prev = prev;
+    public boolean hasNext() {
+        return FlowUtils.hasText(flowNextConfig.getNextFlow()) && FlowUtils.hasText(flowNextConfig.getNextNode());
     }
 
     public FlowNodeConfig getNode() {
@@ -49,13 +45,5 @@ public class FlowNextNode implements Serializable {
 
     public void setFlowNextConfig(FlowNextConfig flowNextConfig) {
         this.flowNextConfig = flowNextConfig;
-    }
-
-    public List<FlowNextNode> getNextNodes() {
-        return nextNodes;
-    }
-
-    public void setNextNodes(List<FlowNextNode> nextNodes) {
-        this.nextNodes = nextNodes;
     }
 }

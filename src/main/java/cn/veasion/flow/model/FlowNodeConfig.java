@@ -8,6 +8,8 @@ package cn.veasion.flow.model;
  */
 public class FlowNodeConfig extends BaseBean {
 
+	private static final long serialVersionUID = 1L;
+
     private String code; // 节点
     private String name; // 节点名称
     private Integer isVirtual; // 是否虚拟节点
